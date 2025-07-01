@@ -1,0 +1,48 @@
+server:
+  port: 8083
+  servlet:
+    context-path: /services/be/interview-service
+
+kafka:
+  group:
+    id: "group"
+  topic:
+    name: "interview-topic"
+  bootstrap-servers: localhost:9092
+  consumer:
+    group-id: group
+    auto-offset-reset: earliest
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+spring:
+  application:
+    name: INTERVIEW-SERVICE
+  datasource:
+    url: jdbc:mysql://localhost:3306/auth_db
+    username: auth_user
+    password: auth_pass
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+
+doc:
+  api:
+    path: /doc/api
+    title: Interview API
+    description: Documentation for the Interview API
+    version: 1.0.0
+
+encryption:
+  algorithm: AES
+  transformation: AES/CBC/PKCS5Padding
+  key-size: 256
+  static-key: 2fC8#n9QeL@xR7VmZ4wTuP1$gHsJ6bEk
+  Link: http://localhost:5173/room
+
