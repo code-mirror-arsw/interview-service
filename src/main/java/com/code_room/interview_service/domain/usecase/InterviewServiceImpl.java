@@ -12,6 +12,8 @@ import com.code_room.interview_service.infrastructure.controller.dto.InterviewEv
 import com.code_room.interview_service.infrastructure.messaging.FcmMessage;
 import com.code_room.interview_service.infrastructure.messaging.KafkaProducer;
 import com.code_room.interview_service.infrastructure.repository.InterviewRepository;
+import com.code_room.interview_service.infrastructure.restclient.OfferApiService;
+import com.code_room.interview_service.infrastructure.restclient.dto.LangageDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -20,7 +22,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import retrofit2.Response;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -40,6 +44,8 @@ public class InterviewServiceImpl implements InterviewService {
     EncryptService encryptService;
     @Autowired
     EncryptionProperties encryptionProperties;
+    @Autowired
+    OfferApiService offerApiService;
 
 
     @Override
@@ -93,29 +99,29 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
 
-    private void notificationsClients(List<String> participants,String link, LocalDateTime dateTime) {
+    private void notificationsClients(List<String> participants,String link, LocalDateTime dateTime,String email) {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
 
-        for (String email : participants) {
-            FcmMessage message = FcmMessage.builder()
-                    .to(email)
-                    .source(NotificationType.INTERVIEW_SCHEDULED)
-                    .data(Map.of(
-                            "date", dateTime.toString(),
-                            "link", link
-                    ))
-                    .build();
 
-            try {
-                String json = objectMapper.writeValueAsString(message);
-                kafkaProducer.sendMessage("notification-topic",json);
+        FcmMessage message = FcmMessage.builder()
+                .to(email)
+                .source(NotificationType.INTERVIEW_SCHEDULED)
+                .data(Map.of(
+                        "date", dateTime.toString(),
+                        "link", link
+                ))
+                .build();
 
-            } catch (JsonProcessingException e) {
-                System.err.println("❌ Error converting FcmMessage to JSON for email " + email + ": " + e.getMessage());
-                e.printStackTrace();
-            }
+        try {
+            String json = objectMapper.writeValueAsString(message);
+            kafkaProducer.sendMessage("notification-topic", json);
+
+        } catch (JsonProcessingException e) {
+            System.err.println("❌ Error converting FcmMessage to JSON for email " + email + ": " + e.getMessage());
+            e.printStackTrace();
         }
+
     }
 
 
@@ -152,14 +158,16 @@ public class InterviewServiceImpl implements InterviewService {
                 .map(interviewMapper::toModel)
                 .orElseThrow(() -> new RuntimeException("Entrevista no encontrada con ID: " + id));
         interview.setScheduledAt(dateTime);
+        interview.setStatus(InterviewStatus.SCHEDULED);
 
         for (String userEmail : interview.getParticipants()) {
             String link = generateLink(userEmail, id, dateTime, interview.getParticipants());
-            notificationsClients(interview.getParticipants(), link,dateTime);
+            notificationsClients(interview.getParticipants(), link,dateTime,userEmail);
         }
 
         String representativeLink = generateLink(interview.getAdminEmail(), id, dateTime, interview.getParticipants());
         interview.setLink(representativeLink);
+        notificationsClients(interview.getParticipants(),representativeLink,dateTime,interview.getAdminEmail());
         Interview interviewModel = interviewMapper.toModel(interviewRepository.save(interviewMapper.toEntity(interview)));
         return interviewMapper.toDto(interviewModel);
     }
@@ -180,6 +188,34 @@ public class InterviewServiceImpl implements InterviewService {
                 .map(interviewMapper::toModel)
                 .map(interviewMapper::toDto);
     }
+
+    @Override
+    public LangageDto getLanguage(String authHeader, String id) {
+        try {
+            String offerId = interviewRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("no found interview " + id))
+                    .getOfferId();
+            Response<LangageDto> response = offerApiService.getLanguage(authHeader, offerId).execute();
+
+            if (response.isSuccessful() && response.body() != null) {
+                return response.body();
+            } else {
+                String errorMsg = response.errorBody() != null ? response.errorBody().string() : "Respuesta vacía";
+                throw new RuntimeException("Error HTTP " + response.code() + ": " + errorMsg);
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException("Error de red: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public String getAdmin(String id){
+        return interviewRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("no found interview " + id))
+                .getAdminEmail();
+    }
+
 
 
 

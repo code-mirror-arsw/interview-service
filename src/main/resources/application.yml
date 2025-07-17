@@ -2,6 +2,8 @@ server:
   port: 8083
   servlet:
     context-path: /services/be/interview-service
+  address: 0.0.0.0
+
 
 kafka:
   group:
@@ -18,6 +20,9 @@ kafka:
 spring:
   application:
     name: INTERVIEW-SERVICE
+    restclient:
+      offer:
+        url: http://localhost:8280/services/be/offer-service/
   datasource:
     url: jdbc:mysql://localhost:3306/auth_db
     username: auth_user
@@ -38,6 +43,12 @@ doc:
     title: Interview API
     description: Documentation for the Interview API
     version: 1.0.0
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
 
 encryption:
   algorithm: AES

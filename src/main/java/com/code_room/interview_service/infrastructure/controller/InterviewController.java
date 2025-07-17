@@ -4,6 +4,7 @@ import com.code_room.interview_service.domain.model.Interview;
 import com.code_room.interview_service.domain.ports.InterviewService;
 import com.code_room.interview_service.infrastructure.controller.dto.InterviewDto;
 import com.code_room.interview_service.infrastructure.repository.entities.InterviewEntity;
+import com.code_room.interview_service.infrastructure.restclient.dto.LangageDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -112,6 +113,27 @@ public class InterviewController {
             return ResponseEntity.ok(interview);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message" , e.getMessage()));
+        }
+    }
+
+    @GetMapping("/language")
+    public ResponseEntity<?> getByLanguage(@RequestParam String id,
+                                           @RequestHeader("Authorization") String authHeader){
+        try {
+            LangageDto language = interviewService.getLanguage(authHeader,id);
+            return ResponseEntity.ok().body(Map.of("language" , language));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("message", "Unexpected error" + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/admin")
+    public ResponseEntity<?> getAdmin(@RequestParam String id){
+        try {
+            String email = interviewService.getAdmin(id);
+            return ResponseEntity.ok().body(Map.of("email" , email));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("message", "Unexpected error" + e.getMessage()));
         }
     }
 
