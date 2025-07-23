@@ -52,3 +52,7 @@ El despliegue de este microservicio está diseñado bajo principios de aislamien
 ## diagrama de clases
 
 ![image](https://github.com/user-attachments/assets/2c7f5d3d-5452-4e43-a235-bed60870a69e)
+
+## este esta cubierto por sonarquebe
+
+![img.png](img.png)
