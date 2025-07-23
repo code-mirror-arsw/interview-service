@@ -1,0 +1,58 @@
+name: Deploy Interview Service to Azure VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      - name: Copy JAR to Azure VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_ONE_HOST }}
+          username: ${{ secrets.SERVER_ONE_USER }}
+          password: ${{ secrets.SERVER_ONE_PASSWORD }}
+          source: target/interview-service-0.0.1-SNAPSHOT.jar
+          target: /opt/interviewService/
+
+      - name: Restart Interview Service
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SERVER_ONE_HOST }}
+          username: ${{ secrets.SERVER_ONE_USER }}
+          password: ${{ secrets.SERVER_ONE_PASSWORD }}
+          script: |
+            echo "🛑 Killing process on port 8086..."
+            fuser -k 8083/tcp || true
+
+            echo "🧹 Removing previous .jar..."
+            rm -f /opt/interviewService/interview-service-0.0.1-SNAPSHOT.jar
+
+            echo "📦 Moving new JAR..."
+            mv /opt/interviewService/target/interview-service-0.0.1-SNAPSHOT.jar /opt/interviewService/interview-service-0.0.1-SNAPSHOT.jar
+
+            echo "📂 Ensuring log directory exists..."
+            mkdir -p /home/${USER}/logs
+
+            echo "🚀 Starting Interview Service..."
+            nohup java -jar /opt/interviewService/interview-service-0.0.1-SNAPSHOT.jar > /home/${USER}/logs/interview.log 2>&1 &
+
+            echo "📄 Showing last 50 lines of log..."
+            sleep 5
+            tail -n 50 /home/${USER}/logs/interview.log

@@ -22,7 +22,7 @@ spring:
     name: INTERVIEW-SERVICE
     restclient:
       offer:
-        url: http://localhost:8280/services/be/offer-service/
+        url: https://apigateway-b8exa0bnakh6bvhx.canadacentral-01.azurewebsites.net/services/be/offer-service/
   datasource:
     url: jdbc:mysql://localhost:3306/auth_db
     username: auth_user
@@ -55,5 +55,5 @@ encryption:
   transformation: AES/CBC/PKCS5Padding
   key-size: 256
   static-key: 2fC8#n9QeL@xR7VmZ4wTuP1$gHsJ6bEk
-  Link: http://localhost:5173/room
+  Link: https://victorious-water-0ec758310.2.azurestaticapps.net/room
 
